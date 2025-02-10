@@ -3,3 +3,7 @@
 sync-tmp/
 mini-lsm.db/
 lsm.db/
+.idea
+mini-lsm-starter/src/tests.rs
+mini-lsm-starter/src/tests/harness.rs
+mini-lsm-starter/src/tests/week1_day1.rs
