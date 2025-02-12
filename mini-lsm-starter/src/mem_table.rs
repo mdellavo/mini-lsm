@@ -21,9 +21,8 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 
 use anyhow::Result;
-use bytes::{Buf, Bytes};
+use bytes::Bytes;
 use crossbeam_skiplist::SkipMap;
-use nom::combinator::value;
 use ouroboros::self_referencing;
 
 use crate::iterators::StorageIterator;
@@ -54,13 +53,12 @@ pub(crate) fn map_bound(bound: Bound<&[u8]>) -> Bound<Bytes> {
 impl MemTable {
     /// Create a new mem-table.
     pub fn create(_id: usize) -> Self {
-        let rv = MemTable {
+        MemTable {
             id: _id,
             map: Arc::new(SkipMap::new()),
             wal: None,
             approximate_size: Arc::new(AtomicUsize::new(0)),
-        };
-        rv
+        }
     }
 
     /// Create a new mem-table with WAL
@@ -92,10 +90,8 @@ impl MemTable {
     /// Get a value by key.
     pub fn get(&self, _key: &[u8]) -> Option<Bytes> {
         let entry = self.map.get(_key);
-        if entry.is_none() {
-            return None;
-        }
-        return Some(entry.unwrap().value().clone());
+        entry.clone()?;
+        Some(entry.unwrap().value().clone())
     }
 
     /// Put a key-value pair into the mem-table.
@@ -109,7 +105,7 @@ impl MemTable {
         let size = _key.len() + _value.len();
         self.approximate_size
             .fetch_add(size, std::sync::atomic::Ordering::SeqCst);
-        return Ok(());
+        Ok(())
     }
 
     /// Implement this in week 3, day 5.

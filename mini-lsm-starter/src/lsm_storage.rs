@@ -294,13 +294,22 @@ impl LsmStorageInner {
 
     /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.
     pub fn get(&self, _key: &[u8]) -> Result<Option<Bytes>> {
-        let rv = self.state.read().memtable.get(_key);
-        if let Some(v) = rv.clone() {
-            if v.len() == 0 {
-                return Ok(None);
+        let guard = self.state.read();
+
+        let mut memtables = Vec::new();
+        memtables.push(guard.memtable.clone());
+        memtables.extend(guard.imm_memtables.clone());
+
+        for memtable in memtables {
+            let rv = memtable.get(_key);
+            if let Some(v) = rv.clone() {
+                if v.is_empty() {
+                    return Ok(None);
+                }
+                return Ok(rv);
             }
         }
-        return Ok(rv);
+        Ok(None)
     }
 
     /// Write a batch of data into the storage. Implement in week 2 day 7.
@@ -322,12 +331,12 @@ impl LsmStorageInner {
                     .expect("Could not force free memtable");
             }
         }
-        return rv;
+        rv
     }
 
     /// Remove a key from the storage by writing an empty value.
     pub fn delete(&self, _key: &[u8]) -> Result<()> {
-        return self.put(_key, &[]);
+        self.put(_key, &[])
     }
 
     pub(crate) fn path_of_sst_static(path: impl AsRef<Path>, id: usize) -> PathBuf {
@@ -360,7 +369,7 @@ impl LsmStorageInner {
         *guard = Arc::new(snapshot);
         drop(guard);
 
-        return Ok(());
+        Ok(())
     }
 
     /// Force flush the earliest-created immutable memtable to disk
